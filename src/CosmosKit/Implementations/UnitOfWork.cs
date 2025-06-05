@@ -9,7 +9,7 @@ namespace CosmosKit.Implementations;
 internal sealed class UnitOfWork(CosmosClient cosmosClient, ContainerResolver containerResolver, string databaseId, CosmosLinqQuery cosmosLinqQuery, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
     private readonly ConcurrentDictionary<Type, object> _repositories = new();
-    private readonly Dictionary<(string Container, PartitionKey PartitionKey), ConcurrentBag<Func<TransactionalBatch, TransactionalBatch>>> _pendingOperations = [];
+    private readonly ConcurrentDictionary<(string Container, PartitionKey PartitionKey), ConcurrentBag<Func<TransactionalBatch, TransactionalBatch>>> _pendingOperations = new();
 
     public bool IsInTransaction { get; private set; } = false;
 
@@ -45,9 +45,9 @@ internal sealed class UnitOfWork(CosmosClient cosmosClient, ContainerResolver co
             throw new InvalidOperationException("No transaction in progress.");
 
         var containerName = containerResolver.ResolveName(typeof(TEntity));
-        var partitionPropertyName = containerResolver.ResolvePartitionKey(typeof(TEntity));
+        var partitionKeyProperty = containerResolver.ResolvePartitionKey(typeof(TEntity));
 
-        var partitionKeyValue = containerResolver.ResolvePartitionKey(typeof(TEntity))?.GetValue(entity)?.ToString();
+        var partitionKeyValue = partitionKeyProperty.GetValue(entity)?.ToString();
         if (partitionKeyValue is null)
         {
             throw new ArgumentException($"The property '{typeof(TEntity)}' does not exist or is null.");
