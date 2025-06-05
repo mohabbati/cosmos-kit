@@ -1,5 +1,6 @@
-﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 
 namespace CosmosKit.Implementations;
 
@@ -57,6 +58,23 @@ internal sealed class Repository<TEntity>(CosmosClient cosmosClient, ContainerRe
         }
 
         return results;
+    }
+
+    public async IAsyncEnumerable<TEntity> StreamAsync(Expression<Func<TEntity, bool>> predicate, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var queryable = _container.GetItemLinqQueryable<TEntity>(true)
+                                  .Where(predicate);
+
+        var feedIterator = cosmoLinqQuery.GetFeedIterator(queryable);
+
+        while (feedIterator.HasMoreResults)
+        {
+            FeedResponse<TEntity> response = await feedIterator.ReadNextAsync(cancellationToken);
+            foreach (var item in response)
+            {
+                yield return item;
+            }
+        }
     }
 
     public async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken)

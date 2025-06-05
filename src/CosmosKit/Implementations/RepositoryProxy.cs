@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 
 namespace CosmosKit.Implementations;
 
@@ -15,6 +16,9 @@ internal sealed class RepositoryProxy<TEntity> : IRepository<TEntity> where TEnt
 
     public async Task<IEnumerable<TEntity>> GetAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) =>
         await _innerRepository.GetAsync(predicate, cancellationToken);
+
+    public IAsyncEnumerable<TEntity> StreamAsync(Expression<Func<TEntity, bool>> predicate, [EnumeratorCancellation] CancellationToken cancellationToken) =>
+        _innerRepository.StreamAsync(predicate, cancellationToken);
 
     public async Task<TEntity?> GetByAsync(TEntity entity, CancellationToken cancellationToken) =>
         await _innerRepository.GetByAsync(entity, cancellationToken);
