@@ -1,31 +1,53 @@
-name: Publish to NuGet
+# This is the name of the GitHub Actions workflow.
+name: Publish to NuGet on Tag
 
+# This section defines the trigger for the workflow.
 on:
   push:
-    branches:
-      - main  # Or your default branch
+    # The workflow only runs when you push a tag that matches this pattern.
+    # It will trigger for tags like v1.0.0, v1.2.3, v1.2.3-beta1, etc.
+    # It will NOT trigger on regular code pushes to any branch.
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*' 
 
+# This section defines the jobs to be run.
 jobs:
   build-and-publish:
+    # The job will run on the latest version of Ubuntu.
     runs-on: ubuntu-latest
 
+    # These are the individual steps of the job.
     steps:
+    # 1. Checks out your repository's code so the workflow can access it.
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
+    # 2. Installs the specified version of the .NET SDK.
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x' # Specify the .NET version you need
+        dotnet-version: '8.x' # Use the .NET version your project targets
 
+    # 3. Restores your project's dependencies.
     - name: Restore dependencies
       run: dotnet restore
 
+    # 4. Builds your project in the 'Release' configuration for production.
     - name: Build
       run: dotnet build --configuration Release --no-restore
-
+      
+    # 5. Creates the NuGet package. The version is dynamically set from the Git tag.
     - name: Pack
-      run: dotnet pack --configuration Release --no-build -p:PackageVersion=${{ github.run_number }}
+      run: |
+        # This line gets the tag name (e.g., "v1.0.1") from the GitHub context variable 'github.ref_name'.
+        # The 'sed' command removes the "v" prefix from the tag.
+        # So, if the tag is "v1.0.1", the VERSION variable becomes "1.0.1".
+        VERSION=$(echo ${{ github.ref_name }} | sed 's/^v//')
+        
+        # This command creates the NuGet package (.nupkg) and passes the VERSION variable
+        # to override the package version, ensuring it matches the Git tag.
+        dotnet pack --configuration Release --no-build -p:PackageVersion=$VERSION
 
+    # 6. Publishes the created NuGet package to NuGet.org.
     - name: Push to NuGet
       run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json

@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>CosmosKit</PackageId>
-        <Version>2.0.1</Version>
+        <Version>1.0.0</Version>
         <Authors>Mmhb</Authors>
         <Description>Repository and Unit of Work patterns on top of the Azure Cosmos DB SDK.</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
