@@ -91,7 +91,36 @@ public class MyEntity : EntityBase
 ```
 ## Usage
 
-Obtain an `IUnitOfWork` from dependency injection and use repositories to perform operations. Use transactions when you need to group multiple operations within the same partition key.
+`CosmosKit` supports both direct repository usage and transactional operations via `IUnitOfWork`.
+
+### 🔹 Using Repository (no transaction)
+
+Use the repository directly if you don't need transaction support. This is efficient for most single-entity operations:
+
+```csharp
+public class CustomerService
+{
+    private readonly IRepository<Customer> _repo;
+
+    public CustomerService(IRepository<Customer> repo)
+    {
+        _repo = repo;
+    }
+
+    public async Task CreateCustomerAsync(Customer customer, CancellationToken ct)
+    {
+        await _repo.AddAsync(customer, ct);
+    }
+}
+```
+
+### 🔹 Using IUnitOfWork (transactional batch)
+
+`IUnitOfWork` enables grouping operations into a transactional batch **within the same container and partition key**. This is especially useful when consistency is critical:
+
+> ⚠️ **Important:** Cosmos DB transactional batch only works when **all operations target the same container and the same partition key**.
+>
+> If you add entities to different containers or with different partition keys, CosmosKit will apply **independent transactions per container/partition key combination**.
 
 ```csharp
 public class OrderService
@@ -103,27 +132,19 @@ public class OrderService
         _uow = uow;
     }
 
-    public async Task CreateOrderAsync(Order order, CancellationToken ct)
+    public async Task PlaceOrderAsync(Order order, Customer customer, CancellationToken ct)
     {
-        var repo = _uow.GetRepository<Order>();
-        await repo.AddAsync(order, ct);
+        await _unitOfWork.BeginTransactionAsync();
+
+        var orderRepo = _uow.GetRepository<Order>();
+        var customerRepo = _uow.GetRepository<Customer>();
+
+        await orderRepo.AddAsync(order, ct);
+        await customerRepo.AddAsync(customer, ct);
+
+        await _unitOfWork.CommitTransactionAsync();
     }
 }
 ```
 
-`GetRepository` returns a repository proxy that automatically participates in transactions started on the unit of work.
-
-## Streaming Queries
-
-`IRepository` exposes `StreamAsync` to asynchronously enumerate large query results without buffering:
-
-```csharp
-await foreach(var order in repo.StreamAsync(o => o.Status == "new", ct))
-{
-    // process order
-}
-```
-
-## License
-
-This project is licensed under the MIT License.
+`GetRepository` returns a repository proxy that automatically participates in the unit of work transaction, if one is started.
