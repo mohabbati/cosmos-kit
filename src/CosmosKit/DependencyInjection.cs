@@ -1,7 +1,6 @@
 using CosmosKit.Implementations;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
@@ -9,32 +8,47 @@ namespace CosmosKit;
 
 public static class DependencyInjection
 {
-    public static IHostApplicationBuilder AddCosmosKit(this IHostApplicationBuilder builder, string databaseId, IEnumerable<EntityContainer> entityContainers)
+    /// <summary>
+    /// Registers CosmosKit services with the specified database ID and entity containers.
+    /// </summary>
+    /// <param name="services">The service collection to add the services to.</param>
+    /// <param name="databaseId">The ID of the Cosmos DB database.</param>
+    /// <param name="entityContainers">A collection of entity containers specifying entity types, container names, and partition keys.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddCosmosKit(this IServiceCollection services, string databaseId, IEnumerable<EntityContainer> entityContainers)
     {
         var registeredContainers = entityContainers.ToDictionary(e => e.EntityType, e => e.ContainerName);
         var registeredPartitionKeys = entityContainers.ToDictionary(e => e.EntityType, e => e.EntityType.GetProperty(nameof(e.PartitionKey))!);
 
-        builder.Services.AddSingleton(new ContainerResolver()
+        services.AddSingleton(new ContainerResolver()
         {
             RegisteredContainers = registeredContainers,
             RegisteredPartitionKeys = registeredPartitionKeys
         });
 
-        builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        builder.Services.AddScoped<CosmosLinqQuery>();
-        builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddScoped<CosmosLinqQuery>();
+        services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(
             sp.GetRequiredService<CosmosClient>(),
             sp.GetRequiredService<ContainerResolver>(),
             databaseId,
             sp.GetRequiredService<CosmosLinqQuery>(),
             sp.GetRequiredService<ILogger<UnitOfWork>>()));
 
-        return builder;
+        return services;
     }
 
-    public static IHostApplicationBuilder AddCosmosKit(this IHostApplicationBuilder builder, string databaseId, IEnumerable<EntityContainer> entityContainers, Action<JsonSerializerOptions> configureJson)
+    /// <summary>
+    /// Registers CosmosKit services with the specified database ID, entity containers, and custom JSON serializer options.
+    /// </summary>
+    /// <param name="services">The service collection to add the services to.</param>
+    /// <param name="databaseId">The ID of the Cosmos DB database.</param>
+    /// <param name="entityContainers">A collection of entity containers specifying entity types, container names, and partition keys.</param>
+    /// <param name="configureJson">An action to configure the JSON serializer options.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddCosmosKit(this IServiceCollection services, string databaseId, IEnumerable<EntityContainer> entityContainers, Action<JsonSerializerOptions> configureJson)
     {
-        builder.Services.AddSingleton<CosmosSerializer>(sp =>
+        services.AddSingleton<CosmosSerializer>(sp =>
         {
             var options = new JsonSerializerOptions();
             configureJson(options);
@@ -45,8 +59,14 @@ public static class DependencyInjection
             return new CosmosSystemTextJsonSerializer(options);
         });
 
-        return AddCosmosKit(builder, databaseId, entityContainers);
+        return AddCosmosKit(services, databaseId, entityContainers);
     }
 
+    /// <summary>
+    /// Represents an entity container with its associated type, container name, and partition key.
+    /// </summary>
+    /// <param name="EntityType">The type of the entity.</param>
+    /// <param name="ContainerName">The name of the Cosmos DB container.</param>
+    /// <param name="PartitionKey">The partition key for the entity.</param>
     public record EntityContainer(Type EntityType, string ContainerName, string PartitionKey);
 }
