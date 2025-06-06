@@ -4,12 +4,16 @@ internal class RepositoryHelper
 {
     internal static void SetEntityDefaults(EntityBase entity)
     {
-        entity.Id = Guid.NewGuid().ToString("N");
+        var utcNow = DateTime.UtcNow;
+        var isNew = string.IsNullOrEmpty(entity.Id);
+
+        if (isNew) 
+            entity.Id = Guid.NewGuid().ToString("N");
 
         if (entity is AuditableEntity auditableEntity)
         {
-            auditableEntity.CreatedAt = DateTime.UtcNow;
-            auditableEntity.ModifiedAt = DateTime.UtcNow;
+            if (isNew) auditableEntity.CreatedAt = utcNow;
+            auditableEntity.ModifiedAt = utcNow;
         }
     }
 }

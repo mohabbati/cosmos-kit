@@ -50,7 +50,7 @@ public interface IRepository<TEntity> where TEntity : EntityBase
     /// <param name="entity">The entity to update.</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task UpdateAsync(TEntity entity, CancellationToken cancellationToken);
+    Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken);
 
     /// <summary>
     /// Deletes an entity from the repository.
@@ -59,4 +59,12 @@ public interface IRepository<TEntity> where TEntity : EntityBase
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     Task DeleteAsync(TEntity entity, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Inserts or updates an entity in the repository.
+    /// </summary>
+    /// <param name="entity">The entity to insert or update.</param>
+    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the inserted or updated entity.</returns>
+    Task<TEntity> UpsertAsync(TEntity entity, CancellationToken cancellationToken);
 }

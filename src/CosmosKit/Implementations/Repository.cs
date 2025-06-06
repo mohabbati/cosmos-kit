@@ -1,13 +1,23 @@
+using Azure;
 using Microsoft.Azure.Cosmos;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
 namespace CosmosKit.Implementations;
 
-internal sealed class Repository<TEntity>(CosmosClient cosmosClient, ContainerResolver containerResolver, string databaseId, CosmosLinqQuery cosmoLinqQuery) : IRepository<TEntity>
+internal sealed class Repository<TEntity> : IRepository<TEntity>
     where TEntity : EntityBase
 {
-    private readonly Container _container = cosmosClient.GetContainer(databaseId, containerResolver.ResolveName(typeof(TEntity)));
+    private readonly Container _container;
+    private readonly CosmosLinqQuery _cosmosLinqQuery;
+    private readonly ContainerResolver _containerResolver;
+
+    public Repository(CosmosClient cosmosClient, ContainerResolver containerResolver, string databaseId, CosmosLinqQuery cosmosLinqQuery)
+    {
+        _container = cosmosClient.GetContainer(databaseId, containerResolver.ResolveName(typeof(TEntity)));
+        _cosmosLinqQuery = cosmosLinqQuery;
+        _containerResolver = containerResolver;
+    }
 
     public async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken)
     {
@@ -47,7 +57,7 @@ internal sealed class Repository<TEntity>(CosmosClient cosmosClient, ContainerRe
         var queryable = _container.GetItemLinqQueryable<TEntity>(true)
                                   .Where(predicate);
 
-        var feedIterator = cosmoLinqQuery.GetFeedIterator(queryable);
+        var feedIterator = _cosmosLinqQuery.GetFeedIterator(queryable);
 
         var results = new List<TEntity>();
 
@@ -65,7 +75,7 @@ internal sealed class Repository<TEntity>(CosmosClient cosmosClient, ContainerRe
         var queryable = _container.GetItemLinqQueryable<TEntity>(true)
                                   .Where(predicate);
 
-        var feedIterator = cosmoLinqQuery.GetFeedIterator(queryable);
+        var feedIterator = _cosmosLinqQuery.GetFeedIterator(queryable);
 
         while (feedIterator.HasMoreResults)
         {
@@ -77,21 +87,31 @@ internal sealed class Repository<TEntity>(CosmosClient cosmosClient, ContainerRe
         }
     }
 
-    public async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken)
+    public async Task<TEntity> UpdateAsync(TEntity entity, CancellationToken cancellationToken)
     {
+        RepositoryHelper.SetEntityDefaults(entity);
+
         var partitionKeyValue = GetPartitionKeyValue(entity);
 
-        if (entity is AuditableEntity auditableEntity)
-        {
-            auditableEntity.ModifiedAt = DateTime.UtcNow;
-        }
+        var response = await _container.ReplaceItemAsync(entity, entity.Id, new PartitionKey(partitionKeyValue), cancellationToken: cancellationToken);
 
-        await _container.ReplaceItemAsync(entity, entity.Id, new PartitionKey(partitionKeyValue), cancellationToken: cancellationToken);
+        return response.Resource;
+    }
+
+    public async Task<TEntity> UpsertAsync(TEntity entity, CancellationToken cancellationToken)
+    {
+        RepositoryHelper.SetEntityDefaults(entity);
+
+        var partitionKeyValue = GetPartitionKeyValue(entity);
+
+        var response = await _container.UpsertItemAsync(entity, new PartitionKey(partitionKeyValue), cancellationToken: cancellationToken);
+
+        return response.Resource;
     }
 
     private string GetPartitionKeyValue(TEntity entity)
     {
-        var partitionKeyValue = containerResolver.ResolvePartitionKey(typeof(TEntity))?.GetValue(entity)?.ToString();
+        var partitionKeyValue = _containerResolver.ResolvePartitionKey(typeof(TEntity))?.GetValue(entity)?.ToString();
 
         if (partitionKeyValue == null)
         {
@@ -106,7 +126,7 @@ internal sealed class Repository<TEntity>(CosmosClient cosmosClient, ContainerRe
         var queryable = _container.GetItemLinqQueryable<TEntity>(true)
                                   .Where(predicate);
 
-        var feedIterator = cosmoLinqQuery.GetFeedIterator(queryable);
+        var feedIterator = _cosmosLinqQuery.GetFeedIterator(queryable);
 
         while (feedIterator.HasMoreResults)
         {
