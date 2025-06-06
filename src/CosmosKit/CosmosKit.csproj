@@ -12,6 +12,7 @@
         <RepositoryUrl>https://github.com/mohabbati/cosmos-kit</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>cosmosdb sdk, repository, repository pattern, unit of work, uof</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
