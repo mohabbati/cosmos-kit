@@ -4,6 +4,14 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <PackageId>CosmosKit</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Mmhb</Authors>
+        <Description>Repository and Unit of Work patterns on top of the Azure Cosmos DB SDK.</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/mohabbati/cosmos-kit</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>cosmosdb sdk, repository, repository pattern, unit of work, uof</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
