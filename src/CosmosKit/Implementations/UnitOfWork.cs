@@ -6,7 +6,7 @@ namespace CosmosKit.Implementations;
 
 // IMPORTANT Note: CosmosDB transaction batches are only valid for operations within the same container and partition key.
 
-internal sealed class UnitOfWork(CosmosClient cosmosClient, ContainerResolver containerResolver, string databaseId, CosmosLinqQuery cosmosLinqQuery, ILogger<UnitOfWork> logger) : IUnitOfWork
+internal sealed class UnitOfWork(CosmosClient cosmosClient, ContainerResolver containerResolver, CosmosLinqQuery cosmosLinqQuery, ILogger<UnitOfWork> logger) : IUnitOfWork
 {
     private readonly ConcurrentDictionary<Type, object> _repositories = new();
     private readonly ConcurrentDictionary<(string Container, PartitionKey PartitionKey), ConcurrentBag<Func<TransactionalBatch, TransactionalBatch>>> _pendingOperations = new();
@@ -20,7 +20,7 @@ internal sealed class UnitOfWork(CosmosClient cosmosClient, ContainerResolver co
             return (IRepository<TEntity>)repository;
         }
 
-        var repositoryProxy = new RepositoryProxy<TEntity>(new Repository<TEntity>(cosmosClient, containerResolver, databaseId, cosmosLinqQuery), this);
+        var repositoryProxy = new RepositoryProxy<TEntity>(new Repository<TEntity>(cosmosClient, containerResolver, cosmosLinqQuery), this);
 
         _repositories.TryAdd(typeof(TEntity), repositoryProxy);
 
@@ -81,7 +81,7 @@ internal sealed class UnitOfWork(CosmosClient cosmosClient, ContainerResolver co
         {
             foreach (var ((containerName, partitionKey), operations) in _pendingOperations)
             {
-                var container = cosmosClient.GetContainer(databaseId, containerName);
+                var container = cosmosClient.GetContainer(RepositoryHelper.DatabaseId, containerName);
                 var batch = container.CreateTransactionalBatch(partitionKey);
 
                 foreach (var operation in operations)

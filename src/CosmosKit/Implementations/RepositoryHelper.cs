@@ -2,6 +2,8 @@
 
 internal class RepositoryHelper
 {
+    internal static string DatabaseId { get; set; } = string.Empty;
+
     internal static void SetEntityDefaults(EntityBase entity)
     {
         var utcNow = DateTime.UtcNow;

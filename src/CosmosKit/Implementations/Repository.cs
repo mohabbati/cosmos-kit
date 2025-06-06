@@ -12,9 +12,9 @@ internal sealed class Repository<TEntity> : IRepository<TEntity>
     private readonly CosmosLinqQuery _cosmosLinqQuery;
     private readonly ContainerResolver _containerResolver;
 
-    public Repository(CosmosClient cosmosClient, ContainerResolver containerResolver, string databaseId, CosmosLinqQuery cosmosLinqQuery)
+    public Repository(CosmosClient cosmosClient, ContainerResolver containerResolver, CosmosLinqQuery cosmosLinqQuery)
     {
-        _container = cosmosClient.GetContainer(databaseId, containerResolver.ResolveName(typeof(TEntity)));
+        _container = cosmosClient.GetContainer(RepositoryHelper.DatabaseId, containerResolver.ResolveName(typeof(TEntity)));
         _cosmosLinqQuery = cosmosLinqQuery;
         _containerResolver = containerResolver;
     }
