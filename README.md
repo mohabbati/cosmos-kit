@@ -37,7 +37,7 @@ builder.AddCosmosKit(
     databaseId: "AppDb",
     entityContainers: new[]
     {
-        new DependencyInjection.EntityContainer(typeof(Order), "orders", "TenantId")
+        new EntityContainer(typeof(Order), "orders", "TenantId")
     },
     configureJson: options =>
     {
@@ -60,6 +60,15 @@ builder.Services.AddSingleton(sp =>
         ApplicationName = "MyApp"
     });
 });
+
+...
+
+builder.Services
+    .AddOptions<CosmosClientOptions>("cosmos")
+    .Configure<CosmosSerializer>((opts, serializer) =>
+    {
+        opts.Serializer = serializer;
+    });
 ```
 
 ## ✅ Entity Model Requirements

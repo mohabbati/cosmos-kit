@@ -29,7 +29,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<CosmosLinqQuery>();
-        services.AddScoped<IUnitOfWork>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
         return services;
