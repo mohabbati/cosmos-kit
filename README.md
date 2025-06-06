@@ -27,6 +27,68 @@ builder.AddCosmosKit(
     });
 ```
 
+
+## 🧩 Optional: Custom JSON Serialization
+
+You can enable **System.Text.Json** support by using the overload that accepts a `JsonSerializerOptions` configuration:
+
+```csharp
+builder.AddCosmosKit(
+    databaseId: "AppDb",
+    entityContainers: new[]
+    {
+        new DependencyInjection.EntityContainer(typeof(Order), "orders", "TenantId")
+    },
+    configureJson: options =>
+    {
+        options.TypeInfoResolver = MyAppJsonContext.Default;
+        options.Converters.Add(new MyPolymorphicConverter());
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
+```
+
+> ⚠️ **Important:** When using this overload, you must also ensure that the `CosmosClient` is constructed with the registered `CosmosSerializer`:
+
+```csharp
+builder.Services.AddSingleton(sp =>
+{
+    var serializer = sp.GetRequiredService<CosmosSerializer>();
+
+    return new CosmosClient(connectionString, new CosmosClientOptions
+    {
+        Serializer = serializer,
+        ApplicationName = "MyApp"
+    });
+});
+```
+
+## ✅ Entity Model Requirements
+
+> 🔑 **Cosmos DB requires the `id` field to be lowercase in JSON**.
+
+If you're using `System.Text.Json` (recommended):
+
+```csharp
+using System.Text.Json.Serialization;
+
+public abstract class EntityBase
+{
+    [JsonPropertyName("id")] // Required by Cosmos DB
+    public string Id { get; set; } = default!;
+}
+```
+
+> ⚠️ **If you're using `Newtonsoft.Json`**, override the `Id` property in your entity and annotate it like this:
+
+```csharp
+using Newtonsoft.Json;
+
+public class MyEntity : EntityBase
+{
+    [JsonProperty("id")]
+    public new string Id { get; set; } = default!;
+}
+```
 ## Usage
 
 Obtain an `IUnitOfWork` from dependency injection and use repositories to perform operations. Use transactions when you need to group multiple operations within the same partition key.

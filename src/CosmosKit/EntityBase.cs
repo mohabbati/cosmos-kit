@@ -1,9 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace CosmosKit;
 
 public abstract class EntityBase
 {
-    [JsonProperty("id")]
+    [JsonPropertyName("id")]
     public string Id { get; set; } = default!;
 }

@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace CosmosKit;
 
@@ -18,6 +19,8 @@ public static class DependencyInjection
             RegisteredContainers = registeredContainers,
             RegisteredPartitionKeys = registeredPartitionKeys
         });
+
+        builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         builder.Services.AddScoped<CosmosLinqQuery>();
         builder.Services.AddScoped<IUnitOfWork>(sp => new UnitOfWork(
             sp.GetRequiredService<CosmosClient>(),
@@ -27,6 +30,22 @@ public static class DependencyInjection
             sp.GetRequiredService<ILogger<UnitOfWork>>()));
 
         return builder;
+    }
+
+    public static IHostApplicationBuilder AddCosmosKit(this IHostApplicationBuilder builder, string databaseId, IEnumerable<EntityContainer> entityContainers, Action<JsonSerializerOptions> configureJson)
+    {
+        builder.Services.AddSingleton<CosmosSerializer>(sp =>
+        {
+            var options = new JsonSerializerOptions();
+            configureJson(options);
+
+            var logger = sp.GetRequiredService<ILogger<CosmosSerializer>>();
+            logger.LogWarning("You configured System.Text.Json, but make sure you also register CosmosClient with this serializer!");
+
+            return new CosmosSystemTextJsonSerializer(options);
+        });
+
+        return AddCosmosKit(builder, databaseId, entityContainers);
     }
 
     public record EntityContainer(Type EntityType, string ContainerName, string PartitionKey);
