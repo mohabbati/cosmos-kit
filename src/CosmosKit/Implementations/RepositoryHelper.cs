@@ -7,9 +7,9 @@ internal class RepositoryHelper
     internal static void SetEntityDefaults(EntityBase entity)
     {
         var utcNow = DateTime.UtcNow;
-        var isNew = string.IsNullOrEmpty(entity.Id);
+        var isNew = string.IsNullOrEmpty(entity.ETag);
 
-        if (isNew) 
+        if (isNew && string.IsNullOrEmpty(entity.Id))
             entity.Id = Guid.NewGuid().ToString("N");
 
         if (entity is AuditableEntity auditableEntity)

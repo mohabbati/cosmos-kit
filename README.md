@@ -22,8 +22,8 @@ builder.AddCosmosKit(
     databaseId: "AppDb",
     new []
     {
-        new DependencyInjection.EntityContainer(typeof(Order), "orders", "TenantId"),
-        new DependencyInjection.EntityContainer(typeof(Customer), "customers", "TenantId")
+        new EntityContainer(typeof(Order), "orders", "TenantId"),
+        new EntityContainer(typeof(Customer), "customers", "TenantId")
     });
 ```
 
@@ -57,18 +57,22 @@ builder.Services.AddSingleton(sp =>
     return new CosmosClient(connectionString, new CosmosClientOptions
     {
         Serializer = serializer,
-        ApplicationName = "MyApp"
+        ...
     });
 });
-
-...
-
-builder.Services
-    .AddOptions<CosmosClientOptions>("cosmos")
-    .Configure<CosmosSerializer>((opts, serializer) =>
-    {
-        opts.Serializer = serializer;
-    });
+```
+Or you can use .Net Aspire CosmosClient with the `CosmosSerializer` injected::
+```csharp
+builder.AddAzureCosmosClient("cosmos",
+cosmosSettings =>
+{
+    ...
+},
+clientOptions =>
+{
+    clientOptions.Serializer = builder.Services.BuildServiceProvider().GetRequiredService<CosmosSerializer>();
+    ...
+});
 ```
 
 ## ✅ Entity Model Requirements

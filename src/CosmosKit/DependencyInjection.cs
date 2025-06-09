@@ -49,7 +49,6 @@ public static class DependencyInjection
         {
             var options = new JsonSerializerOptions();
             configureJson(options);
-
             var logger = sp.GetRequiredService<ILogger<CosmosSerializer>>();
             logger.LogWarning("You configured System.Text.Json, but make sure you also register CosmosClient with this serializer!");
 

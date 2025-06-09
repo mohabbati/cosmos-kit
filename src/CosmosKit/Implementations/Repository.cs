@@ -1,4 +1,3 @@
-using Azure;
 using Microsoft.Azure.Cosmos;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
