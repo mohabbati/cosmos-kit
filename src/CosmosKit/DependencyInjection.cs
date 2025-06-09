@@ -20,7 +20,7 @@ public static class DependencyInjection
         RepositoryHelper.DatabaseId = databaseId;
 
         var registeredContainers = entityContainers.ToDictionary(e => e.EntityType, e => e.ContainerName);
-        var registeredPartitionKeys = entityContainers.ToDictionary(e => e.EntityType, e => e.EntityType.GetProperty(nameof(e.PartitionKey))!);
+        var registeredPartitionKeys = entityContainers.ToDictionary(e => e.EntityType, e => e.EntityType.GetProperty(e.PartitionKey)!);
 
         services.AddSingleton(new ContainerResolver()
         {
@@ -29,8 +29,8 @@ public static class DependencyInjection
         });
 
         services.AddScoped<CosmosLinqQuery>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }
